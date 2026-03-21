@@ -7,6 +7,7 @@ import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 import UPNG from 'upng-js';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
+import { getModelPath, DownloadProgress } from '../utils/modelManager';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Scanner'>;
 
@@ -51,10 +52,17 @@ export function Scanner({ navigation }: Props) {
     const cameraRef = useRef<CameraView>(null);
     const modelRef = useRef<TensorflowModel | null>(null);
     const [loading, setLoading] = useState(false);
+    const [modelReady, setModelReady] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
 
     React.useEffect(() => {
-        loadTensorflowModel(require('../../assets/model/cssvd_model_int8.tflite'))
-            .then(model => { modelRef.current = model; })
+        getModelPath((progress) => setDownloadProgress(progress))
+            .then(path => loadTensorflowModel({ url: path }))
+            .then(model => {
+                modelRef.current = model;
+                setModelReady(true);
+                setDownloadProgress(null);
+            })
             .catch(err => console.error('Failed to load model:', err));
     }, []);
 
@@ -72,6 +80,27 @@ export function Scanner({ navigation }: Props) {
             setLoading(false);
         }
     };
+
+    if (!modelReady) {
+        return (
+            <View style={s.modelLoadingContainer}>
+                <ActivityIndicator size="large" color="#09090b" />
+                {downloadProgress ? (
+                    <>
+                        <Text style={s.modelLoadingTitle}>Downloading model…</Text>
+                        <View style={s.progressBarTrack}>
+                            <View style={[s.progressBarFill, { width: `${downloadProgress.percent}%` }]} />
+                        </View>
+                        <Text style={s.modelLoadingSubtitle}>
+                            {downloadProgress.percent}% — {Math.round(downloadProgress.downloadedBytes / 1024 / 1024)} / {Math.round(downloadProgress.totalBytes / 1024 / 1024)} MB
+                        </Text>
+                    </>
+                ) : (
+                    <Text style={s.modelLoadingTitle}>Loading model…</Text>
+                )}
+            </View>
+        );
+    }
 
     if (!permission) {
         return <View />;
@@ -119,6 +148,34 @@ const makeStyles = (width: number) => {
     const buttonInnerSize = buttonSize * 0.76;
 
     return StyleSheet.create({
+        modelLoadingContainer: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: width * 0.08,
+            gap: width * 0.04,
+        },
+        modelLoadingTitle: {
+            fontSize: width * 0.045,
+            fontWeight: '600',
+            color: '#09090b',
+        },
+        modelLoadingSubtitle: {
+            fontSize: width * 0.032,
+            color: '#71717a',
+        },
+        progressBarTrack: {
+            width: '100%',
+            height: 8,
+            backgroundColor: '#e4e4e7',
+            borderRadius: 4,
+            overflow: 'hidden',
+        },
+        progressBarFill: {
+            height: '100%',
+            backgroundColor: '#09090b',
+            borderRadius: 4,
+        },
         permsContainer: {
             flex: 1,
             alignItems: 'center',

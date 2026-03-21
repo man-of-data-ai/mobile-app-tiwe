@@ -8,6 +8,7 @@
         "@react-navigation/native-stack": "^7.14.6",
         "expo": "~55.0.8",
         "expo-camera": "~55.0.10",
+        "expo-file-system": "^55.0.11",
         "expo-image-manipulator": "^55.0.11",
         "expo-status-bar": "~55.0.4",
         "react": "19.2.0",
@@ -19,6 +20,7 @@
       },
       "devDependencies": {
         "@types/react": "~19.2.2",
+        "@types/upng-js": "^2.1.5",
         "typescript": "~5.9.2",
       },
     },
@@ -359,6 +361,8 @@
     "@types/react": ["@types/react@19.2.14", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w=="],
 
     "@types/stack-utils": ["@types/stack-utils@2.0.3", "", {}, "sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw=="],
+
+    "@types/upng-js": ["@types/upng-js@2.1.5", "", {}, "sha512-CzXg1lcCcWzrmYmke9BLbBPzb2DpdC1bXuXf0BtK3Bygvsozslei8S1bheDI1QUfZzZpMeQI5fywfnMj4CxocQ=="],
 
     "@types/yargs": ["@types/yargs@17.0.35", "", { "dependencies": { "@types/yargs-parser": "*" } }, "sha512-qUHkeCyQFxMXg79wQfTtfndEC+N9ZZg76HJftDJp+qH2tV7Gj4OJi7l+PiWwJ+pWtW8GwSmqsDj/oymhrTWXjg=="],
 
