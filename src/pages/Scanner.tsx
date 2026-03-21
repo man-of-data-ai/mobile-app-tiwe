@@ -1,15 +1,77 @@
-import React from "react";
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { View, Text, Button, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
+import React, { useRef, useState } from "react";
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { View, Text, Button, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import UPNG from 'upng-js';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Scanner'>;
 
 const facing = "back";
+const MODEL_INPUT_SIZE = 380;
 
-export const Scanner = React.memo(function () {
+async function runInference(uri: string, model: TensorflowModel): Promise<number> {
+    const resized = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: MODEL_INPUT_SIZE, height: MODEL_INPUT_SIZE } }],
+        { base64: true, format: ImageManipulator.SaveFormat.PNG }
+    );
+
+    if (!resized.base64) throw new Error('Failed to get base64 from image');
+
+    const binary = atob(resized.base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    const img = UPNG.decode(bytes.buffer);
+    const rgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
+
+    const float32 = new Float32Array(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE * 3);
+    for (let i = 0; i < MODEL_INPUT_SIZE * MODEL_INPUT_SIZE; i++) {
+        float32[i * 3]     = rgba[i * 4];
+        float32[i * 3 + 1] = rgba[i * 4 + 1];
+        float32[i * 3 + 2] = rgba[i * 4 + 2];
+    }
+
+    const output = model.runSync([float32]);
+    return (output[0] as Float32Array)[0];
+}
+
+export function Scanner({ navigation }: Props) {
     const insets = useSafeAreaInsets();
     const [permission, requestPermission] = useCameraPermissions();
     const { width } = useWindowDimensions();
     const s = makeStyles(width);
+
+    const cameraRef = useRef<CameraView>(null);
+    const modelRef = useRef<TensorflowModel | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    React.useEffect(() => {
+        loadTensorflowModel(require('../../assets/model/cssvd_model_int8.tflite'))
+            .then(model => { modelRef.current = model; })
+            .catch(err => console.error('Failed to load model:', err));
+    }, []);
+
+    const handleCapture = async () => {
+        if (!cameraRef.current || !modelRef.current || loading) return;
+        setLoading(true);
+        try {
+            const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
+            if (!photo) throw new Error('Failed to take picture');
+            const sigmoid = await runInference(photo.uri, modelRef.current);
+            navigation.navigate('Result', { sigmoid });
+        } catch (err) {
+            console.error('Inference error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (!permission) {
         return <View />;
@@ -25,7 +87,7 @@ export const Scanner = React.memo(function () {
     }
 
     return <View style={s.container}>
-        <CameraView style={s.camera} facing={facing} />
+        <CameraView ref={cameraRef} style={s.camera} facing={facing} />
         <View style={s.overlay}>
             <View style={s.overlayTop} />
             <View style={s.overlayMiddle}>
@@ -39,13 +101,16 @@ export const Scanner = React.memo(function () {
                 <View style={s.overlaySide} />
             </View>
             <View style={s.overlayBottom}>
-                <TouchableOpacity style={s.captureButton} activeOpacity={0.7} onPress={() => {}}>
-                    <View style={s.captureButtonInner} />
+                <TouchableOpacity style={s.captureButton} activeOpacity={0.7} onPress={handleCapture} disabled={loading}>
+                    {loading
+                        ? <ActivityIndicator color="black" />
+                        : <View style={s.captureButtonInner} />
+                    }
                 </TouchableOpacity>
             </View>
         </View>
     </View>
-})
+}
 
 const makeStyles = (width: number) => {
     const scanBoxSize = width * 0.68;
