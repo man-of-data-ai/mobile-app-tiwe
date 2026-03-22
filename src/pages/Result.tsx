@@ -9,10 +9,16 @@ export function Result({ route, navigation }: Props) {
     const { sigmoid } = route.params;
     const { width } = useWindowDimensions();
     const s = makeStyles(width);
+    const isHealthy = sigmoid >= 0.5;
 
     return (
         <View style={s.container}>
             <Text style={s.title}>Inference Result</Text>
+
+            <View style={[s.resultBanner, isHealthy ? s.bannerHealthy : s.bannerInfected]}>
+                <Text style={s.resultLabel}>{isHealthy ? 'Healthy' : 'CSSVD Infected'}</Text>
+                <Text style={s.resultAnswer}>{isHealthy ? 'No' : 'Yes'}</Text>
+            </View>
 
             <View style={s.card}>
                 <Text style={s.label}>Raw sigmoid output</Text>
@@ -38,6 +44,30 @@ const makeStyles = (width: number) => StyleSheet.create({
         fontSize: width * 0.06,
         fontWeight: 'bold',
         marginBottom: width * 0.08,
+    },
+    resultBanner: {
+        width: '100%',
+        borderRadius: 12,
+        padding: width * 0.06,
+        alignItems: 'center',
+        marginBottom: width * 0.05,
+    },
+    bannerHealthy: {
+        backgroundColor: '#dcfce7',
+    },
+    bannerInfected: {
+        backgroundColor: '#fee2e2',
+    },
+    resultLabel: {
+        fontSize: width * 0.045,
+        fontWeight: '600',
+        color: '#09090b',
+        marginBottom: width * 0.01,
+    },
+    resultAnswer: {
+        fontSize: width * 0.12,
+        fontWeight: 'bold',
+        color: '#09090b',
     },
     card: {
         width: '100%',
