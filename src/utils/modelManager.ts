@@ -1,8 +1,8 @@
 import { documentDirectory, getInfoAsync, createDownloadResumable, deleteAsync } from 'expo-file-system/legacy';
 
-const MODEL_FILENAME = 'cssvd_model_fp16.tflite';
+const MODEL_FILENAME = 'cssvd_model_int8.tflite';
 const MODEL_LOCAL_PATH = documentDirectory + MODEL_FILENAME;
-const MODEL_MIN_SIZE_BYTES = 250 * 1024 * 1024; // 250 MB minimum — rejects corrupt/partial files
+const MODEL_MIN_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB minimum — rejects corrupt/partial files
 
 const MODEL_DOWNLOAD_URL =
     'https://github.com/man-of-data-ai/mobile-app-tiwe/releases/latest/download/' + MODEL_FILENAME;
