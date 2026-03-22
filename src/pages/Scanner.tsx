@@ -53,9 +53,12 @@ export function Scanner({ navigation }: Props) {
     const modelRef = useRef<TensorflowModel | null>(null);
     const [loading, setLoading] = useState(false);
     const [modelReady, setModelReady] = useState(false);
+    const [modelError, setModelError] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
 
-    React.useEffect(() => {
+    const loadModel = () => {
+        setModelError(null);
+        setDownloadProgress(null);
         getModelPath((progress) => setDownloadProgress(progress))
             .then(path => loadTensorflowModel({ url: path }))
             .then(model => {
@@ -63,8 +66,13 @@ export function Scanner({ navigation }: Props) {
                 setModelReady(true);
                 setDownloadProgress(null);
             })
-            .catch(err => console.error('Failed to load model:', err));
-    }, []);
+            .catch(err => {
+                console.error('Failed to load model:', err);
+                setModelError('Failed to load model. Check your connection and try again.');
+            });
+    };
+
+    React.useEffect(() => { loadModel(); }, []);
 
     const handleCapture = async () => {
         if (!cameraRef.current || !modelRef.current || loading) return;
@@ -84,19 +92,31 @@ export function Scanner({ navigation }: Props) {
     if (!modelReady) {
         return (
             <View style={s.modelLoadingContainer}>
-                <ActivityIndicator size="large" color="#09090b" />
-                {downloadProgress ? (
+                {modelError ? (
                     <>
-                        <Text style={s.modelLoadingTitle}>Downloading model…</Text>
-                        <View style={s.progressBarTrack}>
-                            <View style={[s.progressBarFill, { width: `${downloadProgress.percent}%` }]} />
-                        </View>
-                        <Text style={s.modelLoadingSubtitle}>
-                            {downloadProgress.percent}% — {Math.round(downloadProgress.downloadedBytes / 1024 / 1024)} / {Math.round(downloadProgress.totalBytes / 1024 / 1024)} MB
-                        </Text>
+                        <Text style={s.modelErrorTitle}>Something went wrong</Text>
+                        <Text style={s.modelErrorMessage}>{modelError}</Text>
+                        <TouchableOpacity style={s.retryButton} onPress={loadModel}>
+                            <Text style={s.retryButtonText}>Retry</Text>
+                        </TouchableOpacity>
                     </>
                 ) : (
-                    <Text style={s.modelLoadingTitle}>Loading model…</Text>
+                    <>
+                        <ActivityIndicator size="large" color="#09090b" />
+                        {downloadProgress ? (
+                            <>
+                                <Text style={s.modelLoadingTitle}>Downloading model…</Text>
+                                <View style={s.progressBarTrack}>
+                                    <View style={[s.progressBarFill, { width: `${downloadProgress.percent}%` }]} />
+                                </View>
+                                <Text style={s.modelLoadingSubtitle}>
+                                    {downloadProgress.percent}% — {Math.round(downloadProgress.downloadedBytes / 1024 / 1024)} / {Math.round(downloadProgress.totalBytes / 1024 / 1024)} MB
+                                </Text>
+                            </>
+                        ) : (
+                            <Text style={s.modelLoadingTitle}>Loading model…</Text>
+                        )}
+                    </>
                 )}
             </View>
         );
@@ -175,6 +195,28 @@ const makeStyles = (width: number) => {
             height: '100%',
             backgroundColor: '#09090b',
             borderRadius: 4,
+        },
+        modelErrorTitle: {
+            fontSize: width * 0.05,
+            fontWeight: 'bold',
+            color: '#09090b',
+        },
+        modelErrorMessage: {
+            fontSize: width * 0.035,
+            color: '#71717a',
+            textAlign: 'center',
+        },
+        retryButton: {
+            backgroundColor: '#09090b',
+            paddingVertical: width * 0.035,
+            paddingHorizontal: width * 0.08,
+            borderRadius: 8,
+            marginTop: width * 0.02,
+        },
+        retryButtonText: {
+            color: 'white',
+            fontSize: width * 0.04,
+            fontWeight: '600',
         },
         permsContainer: {
             flex: 1,
