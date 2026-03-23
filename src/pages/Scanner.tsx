@@ -42,9 +42,17 @@ async function runInference(uri: string, model: TensorflowModel): Promise<number
     }
 
     const output = model.runSync([float32]);
-    const raw = (output[0] as Float32Array)[0];
-    // INT8 quantized models return UINT8 values (0-255) instead of float32 (0-1)
-    return raw > 1 ? raw / 255 : raw;
+    const raw = (output[0] as any)[0];
+
+    if (raw >= -1 && raw <= 1) {
+        // Already a float32 output
+        return raw;
+    }
+
+    // INT8 quantized output returned as unsigned byte (0-255).
+    // Convert to signed INT8 (-128 to 127) then dequantize to [0, 1].
+    const int8Value = raw > 127 ? raw - 256 : raw;
+    return (int8Value + 128) / 256;
 }
 
 export function Scanner({ navigation }: Props) {
