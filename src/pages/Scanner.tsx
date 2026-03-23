@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 import { Ionicons } from '@expo/vector-icons';
 import UPNG from 'upng-js';
+import { Buffer } from 'buffer';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { getModelPath, DownloadProgress } from '../utils/modelManager';
@@ -25,11 +26,8 @@ async function runInference(uri: string, model: TensorflowModel): Promise<number
 
     if (!resized.base64) throw new Error('Failed to get base64 from image');
 
-    const binary = atob(resized.base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
+    // Buffer.from is binary-safe unlike atob+charCodeAt which corrupts bytes > 127
+    const bytes = Buffer.from(resized.base64, 'base64');
 
     const img = UPNG.decode(bytes.buffer);
     const rgba = new Uint8Array(UPNG.toRGBA8(img)[0]);
