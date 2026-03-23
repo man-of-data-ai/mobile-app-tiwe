@@ -3,7 +3,9 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { View, Text, Button, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
+import { Ionicons } from '@expo/vector-icons';
 import UPNG from 'upng-js';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -83,7 +85,26 @@ export function Scanner({ navigation }: Props) {
             const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
             if (!photo) throw new Error('Failed to take picture');
             const sigmoid = await runInference(photo.uri, modelRef.current);
-            navigation.navigate('Result', { sigmoid });
+            navigation.navigate('Result', { sigmoid, photoUri: photo.uri });
+        } catch (err) {
+            console.error('Inference error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGallery = async () => {
+        if (!modelRef.current || loading) return;
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 1,
+        });
+        if (result.canceled || !result.assets[0]) return;
+        setLoading(true);
+        try {
+            const uri = result.assets[0].uri;
+            const sigmoid = await runInference(uri, modelRef.current);
+            navigation.navigate('Result', { sigmoid, photoUri: uri });
         } catch (err) {
             console.error('Inference error:', err);
         } finally {
@@ -152,12 +173,18 @@ export function Scanner({ navigation }: Props) {
                 <View style={s.overlaySide} />
             </View>
             <View style={s.overlayBottom}>
-                <TouchableOpacity style={s.captureButton} activeOpacity={0.7} onPress={handleCapture} disabled={loading}>
-                    {loading
-                        ? <ActivityIndicator color="black" />
-                        : <View style={s.captureButtonInner} />
-                    }
-                </TouchableOpacity>
+                <View style={s.bottomControls}>
+                    <TouchableOpacity style={s.galleryButton} activeOpacity={0.7} onPress={handleGallery} disabled={loading}>
+                        <Ionicons name="images-outline" size={28} color="white" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.captureButton} activeOpacity={0.7} onPress={handleCapture} disabled={loading}>
+                        {loading
+                            ? <ActivityIndicator color="black" />
+                            : <View style={s.captureButtonInner} />
+                        }
+                    </TouchableOpacity>
+                    <View style={s.galleryButton} />
+                </View>
             </View>
         </View>
     </View>
@@ -289,6 +316,18 @@ const makeStyles = (width: number) => {
         overlayBottom: {
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        bottomControls: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: width * 0.08,
+        },
+        galleryButton: {
+            width: buttonSize,
+            height: buttonSize,
             alignItems: 'center',
             justifyContent: 'center',
         },

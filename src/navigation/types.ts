@@ -1,4 +1,4 @@
 export type RootStackParamList = {
     Scanner: undefined;
-    Result: { sigmoid: number };
+    Result: { sigmoid: number; photoUri: string };
 };

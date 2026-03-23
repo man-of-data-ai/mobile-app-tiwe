@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
 export function Result({ route, navigation }: Props) {
-    const { sigmoid } = route.params;
+    const { sigmoid, photoUri } = route.params;
     const { width } = useWindowDimensions();
     const s = makeStyles(width);
     const isHealthy = sigmoid >= 0.5;
@@ -14,6 +14,8 @@ export function Result({ route, navigation }: Props) {
     return (
         <View style={s.container}>
             <Text style={s.title}>Inference Result</Text>
+
+            <Image source={{ uri: photoUri }} style={s.photo} resizeMode="cover" />
 
             <View style={[s.resultBanner, isHealthy ? s.bannerHealthy : s.bannerInfected]}>
                 <Text style={s.resultLabel}>{isHealthy ? 'Healthy' : 'CSSVD Infected'}</Text>
@@ -44,6 +46,12 @@ const makeStyles = (width: number) => StyleSheet.create({
         fontSize: width * 0.06,
         fontWeight: 'bold',
         marginBottom: width * 0.08,
+    },
+    photo: {
+        width: '100%',
+        height: width * 0.6,
+        borderRadius: 12,
+        marginBottom: width * 0.05,
     },
     resultBanner: {
         width: '100%',
